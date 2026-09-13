@@ -167,7 +167,7 @@ that runs calibre (for a flatpak calibre: `flatpak override --user --env=... com
 | `ECONOMIST_SESSION_SCRIPT` | path to `economist_session.py`, if the recorded location is wrong | the recorded location |
 | `ECONOMIST_DEBUG` | set to `1` to print the best-effort paths (retries, skipped teardown steps) to stderr | unset, silent |
 | `ECONOMIST_SERVE_MAX_S` | seconds after which a served browser is shut down regardless, so a crashed download cannot leave the DevTools port open | 2700 (45 min) |
-| `CALIBRE_CONFIG_DIRECTORY` | calibre's config dir, if not the flatpak or `~/.config/calibre` default | auto |
+| `CALIBRE_CONFIG_DIRECTORY` | calibre's config dir, if not the flatpak or platform default (`~/Library/Preferences/calibre` on macOS, `~/.config/calibre` on Linux) | auto |
 
 **Flatpak calibre only:** the recipe has to start a program on the host from inside
 calibre's sandbox. Grant that once:

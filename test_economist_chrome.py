@@ -418,8 +418,20 @@ def test_calibre_config_dir_prefers_env(monkeypatch, tmp_path):
 def test_calibre_config_dir_falls_back_to_xdg(monkeypatch, tmp_path):
     monkeypatch.delenv('CALIBRE_CONFIG_DIRECTORY', raising=False)
     monkeypatch.setattr(session, 'FLATPAK_CONFIG_DIR', str(tmp_path / 'absent'))
+    monkeypatch.setattr(session.sys, 'platform', 'linux')
     monkeypatch.setenv('HOME', str(tmp_path))
     assert session.calibre_config_dir() == str(tmp_path / '.config' / 'calibre')
+
+
+def test_calibre_config_dir_uses_macos_default(monkeypatch, tmp_path):
+    monkeypatch.delenv('CALIBRE_CONFIG_DIRECTORY', raising=False)
+    monkeypatch.setattr(session, 'FLATPAK_CONFIG_DIR', str(tmp_path / 'absent'))
+    monkeypatch.setattr(session, 'MACOS_CONFIG_DIR', str(
+        tmp_path / 'Library' / 'Preferences' / 'calibre'))
+    monkeypatch.setattr(session.sys, 'platform', 'darwin')
+    monkeypatch.setenv('HOME', str(tmp_path))
+    assert session.calibre_config_dir() == str(
+        tmp_path / 'Library' / 'Preferences' / 'calibre')
 
 
 def test_record_location_writes_pointer(monkeypatch, tmp_path):
