@@ -19,6 +19,29 @@ full articles with images, 0 failures, 0 HTTP 403s. Discussion: MobileRead threa
 You need an Economist **subscription**. This project shares code only; no
 downloaded editions are or will be distributed.
 
+## macOS support status
+
+When the system is detected as macOS (`sys.platform == 'darwin'`), the
+following macOS-specific behaviors take effect automatically:
+
+- Calibre’s native config directory is detected at
+  `~/Library/Preferences/calibre`.
+- Native Google Chrome and Chromium application bundles are detected
+  automatically.
+- Browser commands are parsed safely when executable paths contain spaces.
+  Paths supplied through `ECONOMIST_BROWSER_CMD` must be quoted.
+- The browser PID fallback uses macOS `ps` instead of Linux’s `/proc`.
+
+When the system is not macOS, the existing Linux behavior remains unchanged.
+
+For the manual macOS setup, save the copied cURL request and import it with:
+
+```bash
+pbpaste > /tmp/eco-curl.txt
+python3 import_curl_cookies.py /tmp/eco-curl.txt
+python3 economist_session.py --seed
+```
+
 ## Contents
 
 - [Why the built-in recipe is dead](#why-the-built-in-recipe-is-dead)
@@ -142,6 +165,12 @@ One time: harvest a browser export, import it, seed the profile.
    wl-paste | grep -c __cf_bm      # xclip -o on X11
    ```
 
+   On macOS, use the clipboard command:
+
+   ```bash
+   pbpaste | grep -c __cf_bm
+   ```
+
 6. Import and seed, on the **host** (not inside a flatpak):
 
    ```bash
@@ -149,6 +178,14 @@ One time: harvest a browser export, import it, seed the profile.
    cd ~/calibre-economist-cdp
    wl-paste > /run/user/$(id -u)/eco-curl.txt
    python3 import_curl_cookies.py /run/user/$(id -u)/eco-curl.txt
+   python3 economist_session.py --seed
+   ```
+
+   On macOS, use `/tmp` for the temporary export:
+
+   ```bash
+   pbpaste > /tmp/eco-curl.txt
+   python3 import_curl_cookies.py /tmp/eco-curl.txt
    python3 economist_session.py --seed
    ```
 
@@ -326,11 +363,13 @@ user profile's ACL and that should be said out loud in the docs.
 
 | Where | What happens |
 |---|---|
-| `economist_chrome.py`, `BROWSER_CMD` | The command is split on whitespace, so `/Applications/Google Chrome.app/Contents/MacOS/Google Chrome` becomes three arguments. `shlex.split` fixes it |
-| `economist_chrome.py`, `pid_is_our_browser` | Identifies the process through `/proc`, absent on macOS, so it returns False and the pid fallback never fires. Only matters after a crash; the normal shutdown goes over CDP |
+| `economist_chrome.py`, `BROWSER_CMD` | An executable path containing spaces must be quoted in `ECONOMIST_BROWSER_CMD`; the code parses it with `shlex.split()` |
+| `economist_chrome.py`, `pid_is_our_browser` | macOS has no `/proc`; the code uses `ps` to verify the recorded profile path before using the pid fallback. The normal shutdown still goes over CDP |
 
-Defaults for the browser command and the profile directory are flatpak-shaped on
-both platforms, but both are environment overrides already.
+On macOS, the browser command automatically checks installed Chrome and
+Chromium application bundles. Set `ECONOMIST_BROWSER_CMD` if you want a
+different executable. On Linux, the default remains the ungoogled-Chromium
+Flatpak command.
 
 **The harder half is not the code.** Running is not working. This approach
 depends on the browser fingerprint being genuinely the user's own, and it has

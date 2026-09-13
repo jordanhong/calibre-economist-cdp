@@ -502,6 +502,7 @@ def test_reap_exits_early_once_the_endpoint_is_gone(monkeypatch):
 def test_pid_is_our_browser_matches_only_the_profile(monkeypatch, tmp_path):
     profile = str(tmp_path / 'chromium-economist')
     monkeypatch.setattr(mod, 'CHROME_PROFILE', profile)
+    monkeypatch.setattr(mod.sys, 'platform', 'linux')
     proc = tmp_path / 'proc'
     (proc / '111').mkdir(parents=True)
     (proc / '111' / 'cmdline').write_bytes(
@@ -520,6 +521,47 @@ def test_pid_is_our_browser_matches_only_the_profile(monkeypatch, tmp_path):
     assert mod.pid_is_our_browser(111) is True
     assert mod.pid_is_our_browser(222) is False
     assert mod.pid_is_our_browser(999) is False
+
+
+def test_browser_command_preserves_spaces_in_executable_path():
+    command = '"/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" --new-window'
+    assert mod.parse_browser_command(command) == [
+        '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
+        '--new-window',
+    ]
+
+
+def test_macos_default_finds_google_chrome(monkeypatch):
+    chrome = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'
+    monkeypatch.setattr(mod.sys, 'platform', 'darwin')
+    monkeypatch.setattr(mod.os, 'access', lambda path, mode: path == chrome)
+    assert mod.default_browser_command() == [chrome]
+
+
+def test_macos_default_does_not_select_unsupported_browsers(monkeypatch):
+    monkeypatch.setattr(mod.sys, 'platform', 'darwin')
+    monkeypatch.setattr(mod.os, 'access', lambda path, mode: False)
+    monkeypatch.setattr(mod.shutil, 'which', lambda executable: {
+        'brave-browser': '/usr/local/bin/brave-browser',
+        'microsoft-edge': '/usr/local/bin/microsoft-edge',
+    }.get(executable))
+    assert mod.default_browser_command() == ['google-chrome']
+
+
+def test_pid_is_our_browser_uses_ps_on_macos(monkeypatch, tmp_path):
+    profile = str(tmp_path / 'chromium-economist')
+    monkeypatch.setattr(mod, 'CHROME_PROFILE', profile)
+    monkeypatch.setattr(mod.sys, 'platform', 'darwin')
+
+    class Result:
+        returncode = 0
+        stdout = f'Chromium --user-data-dir={profile} --remote-debugging-port=1234\n'
+
+    calls = []
+    monkeypatch.setattr(mod.subprocess, 'run',
+                        lambda *args, **kwargs: calls.append((args, kwargs)) or Result())
+    assert mod.pid_is_our_browser(111) is True
+    assert calls[0][0][0] == ['ps', '-p', '111', '-o', 'command=']
 
 
 # --- L2: the recipe's session pointer must not be group/world writable ------
