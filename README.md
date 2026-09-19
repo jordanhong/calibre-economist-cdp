@@ -34,6 +34,11 @@ following macOS-specific behaviors take effect automatically:
 
 When the system is not macOS, the existing Linux behavior remains unchanged.
 
+**Testing platform:** macOS 15.7.9 on Apple Silicon (`arm64`), Calibre 9.14.0
+(`darwin`, embedded Python), Google Chrome 153.0.8010.48, and Python 3.13.5.
+Full end-to-end edition
+download have been verified on this platform.
+
 For the manual macOS setup, save the copied cURL request and import it with:
 
 ```bash
